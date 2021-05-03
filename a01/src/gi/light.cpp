@@ -9,6 +9,7 @@
 #include "distribution.h"
 #include "timer.h"
 #include "color.h"
+#include <cmath>
 #include <iostream>
 
 // ------------------------------------------------
@@ -27,8 +28,16 @@ std::tuple<glm::vec3, Ray, float> AreaLight::sample_Li(const SurfaceInteraction&
     // hint: see surface.h for relevant members of the SurfaceInteraction class
     // hint: you may simply ignore the sample_pdf variable for now
     const glm::vec3 Le = light.emission();
-    Ray shadow_ray = Ray();
-    return { Le, shadow_ray, sample_pdf };
+    auto lightSourceNorm = normalize(light.N);
+    auto r = distance(light.P, hit.P);
+    auto lightSourceDir = normalize(light.P - hit.P);
+    auto lightSurfaceArea = light.area;
+    auto emittedLight = Le;
+    auto li = emittedLight * lightSurfaceArea * std::max(dot(-lightSourceDir, lightSourceNorm), 0.f) / (r*r);
+
+    Ray shadow_ray = Ray(hit.P, lightSourceDir, r); // len param is rather underdocumented
+
+    return { li, shadow_ray, sample_pdf };
 }
 
 float AreaLight::pdf_Li(const SurfaceInteraction& light, const Ray& ray) const {
