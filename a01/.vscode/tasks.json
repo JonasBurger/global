@@ -50,6 +50,30 @@
                 "make"
             ]
         },
+        {
+            "label": "build and run release",
+            "type": "shell",
+            "options": {
+                "cwd": "${workspaceRoot}/release"
+            },
+            "args": [
+                "-DCMAKE_BUILD_TYPE=Release",
+                "..",
+                "&&",
+                "make",
+                "&&",
+                "./driver",
+                "simple.algo",
+                "../configs/a01.json"
+             ],
+            "command": "cmake",
+            "group": "build",
+            "problemMatcher": [],
+            "dependsOn": [
+                "make"
+            ]
+            
+        },
         
     ]
 }

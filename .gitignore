@@ -9,3 +9,5 @@ a02/a02
 */*.zip
 */dep
 */compile_commands.json
+*/release
+*/output.png
