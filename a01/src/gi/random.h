@@ -1,11 +1,15 @@
 #pragma once
 
+#include "glm/fwd.hpp"
 #include "rng.h"
 #include "timer.h"
 #include "buffer.h"
+#include <bits/stdint-uintn.h>
 #include <chrono>
+#include <cmath>
 #include <iostream>
 #include <glm/glm.hpp>
+#include <bit>
 
 // --------------------------------------------------------------------------------
 // Random sampler interface
@@ -113,6 +117,10 @@ inline glm::vec2 sample02(uint32_t i, const uint32_t scramble[2]) {
     return glm::vec2(vandercorput(i, scramble[0]), sobol2(i, scramble[1]));
 }
 
+inline float stratifiedSample(uint32_t i, uint32_t iMax){
+    return i * (1.f / iMax ) + RNG::uniform<float>() / iMax;
+}
+
 // --------------------------------------------------------------------------------
 // 1D sampler implementations
 
@@ -130,13 +138,20 @@ class StratifiedSampler1D : public Sampler<float> {
 public:
     inline void init(uint32_t N) {
         // TODO ASSIGNMENT1
+        maxSampleSize = N;
+        currentSample = 0;
     }
 
     inline float next() {
         // TODO ASSIGNMENT1
         // return the next stratified sample
-        return 0.f;
+        STAT("stratified sampling");
+
+        return stratifiedSample(currentSample++, maxSampleSize);
     }
+private:
+    uint32_t currentSample = 0;
+    uint32_t maxSampleSize = 0;
 };
 
 // --------------------------------------------------------------------------------
@@ -157,13 +172,25 @@ public:
     inline void init(uint32_t N) {
         // TODO ASSIGNMENT1
         // note: you may assume N to be quadratic
+        //assert(std::popcount(N) == 1);
+        maxSampleSize = N;
+        currentSample = 0;
     }
 
     inline glm::vec2 next() {
         // TODO ASSIGNMENT1
         // return the next stratified sample
-        return glm::vec2(0.f);
+        STAT("stratified sampling");
+        auto dim = static_cast<uint32_t>(std::sqrt(maxSampleSize));
+        auto vec = glm::vec2();
+        vec.x = stratifiedSample(currentSample % dim, dim);
+        vec.y = stratifiedSample(currentSample / dim, dim);
+        ++currentSample;
+        return vec;
     }
+private:
+    uint32_t currentSample = 0;
+    uint32_t maxSampleSize = 0;
 };
 
 class HaltonSampler2D : public Sampler<glm::vec2> {
@@ -171,13 +198,20 @@ public:
     inline void init(uint32_t N) {
         // TODO ASSIGNMENT1
         // note: bases 2 and 3 are commonly used
+        currentSample = 0;
     }
 
     inline glm::vec2 next() {
         // TODO ASSIGNMENT1
         // note: see helper function halton() above
-        return glm::vec2(0.f);
+        auto vec = glm::vec2();
+        vec.x = halton(currentSample, 2);
+        vec.y = halton(currentSample, 3);
+        ++currentSample;
+        return vec;
     }
+private:
+    uint32_t currentSample = 0;
 };
 
 class HammersleySampler2D : public Sampler<glm::vec2> {
@@ -185,13 +219,23 @@ public:
     inline void init(uint32_t N) {
         // TODO ASSIGNMENT1
         // note: use a random seed
+        seed = RNG::uniform_uint(); 
+        maxSampleSize = N;
+        currentSample = 0;
     }
 
     inline glm::vec2 next() {
         // TODO ASSIGNMENT1
         // note: see helper function hammersley() above
-        return glm::vec2(0.f);
+        auto vec = glm::vec2();
+        vec = hammersley(currentSample, maxSampleSize, seed);
+        ++currentSample;
+        return vec;
     }
+private:
+    uint32_t seed = 0;
+    uint32_t currentSample = 0;
+    uint32_t maxSampleSize = 0;
 };
 
 class LDSampler2D : public Sampler<glm::vec2> {
@@ -199,13 +243,24 @@ public:
     inline void init(uint32_t N) {
         // TODO ASSIGNMENT1
         // note: use two random seeds
+        seed1 = RNG::uniform_uint(); // could probably use just 1 seed
+        seed2 = RNG::uniform_uint();
+        currentSample = 0;
     }
 
     inline glm::vec2 next() {
         // TODO ASSIGNMENT1
         // note: see helper function sample02() above
-        return glm::vec2(0.f);
+        auto vec = glm::vec2();
+        uint32_t seeds[] = {seed1, seed2};
+        vec = sample02(currentSample, seeds);
+        ++currentSample;
+        return vec;
     }
+private:
+    uint32_t seed1 = 0;
+    uint32_t seed2 = 0;
+    uint32_t currentSample = 0;
 };
 
 // --------------------------------------------------------------------------------

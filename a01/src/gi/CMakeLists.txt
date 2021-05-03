@@ -9,6 +9,9 @@ file(GLOB SOURCES "*.cpp")
 add_library(${TARGET} SHARED ${SOURCES} ${HEADERS})
 generate_export_header(${TARGET})
 
+# c++20 support
+#target_compile_features(${TARGET} PRIVATE cxx_std_20)
+
 # ----------------------------------------------------------
 # dependencies
 

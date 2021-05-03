@@ -8,3 +8,4 @@ a02/a02
 */*.pdf
 */*.zip
 */dep
+*/compile_commands.json
