@@ -5,10 +5,10 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "lldb",
+      "type": "cppdbg",
       "request": "launch",
       "name": "Debug",
-      "program": "./build/driver",
+      "program": "${workspaceFolder}/build/driver",
       "args": [
          "build/simple.algo",
          "configs/a01.json"

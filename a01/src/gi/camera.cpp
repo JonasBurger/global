@@ -1,4 +1,6 @@
 #include "camera.h"
+#include "glm/fwd.hpp"
+#include "glm/geometric.hpp"
 #include "sampling.h"
 #include "timer.h"
 
@@ -30,7 +32,8 @@ Ray Camera::view_ray(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const glm::
 Ray Camera::perspective_view_ray(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const glm::vec2& pixel_sample) const {
     // TODO ASSIGNMENT1
     // jitter the ray throughout the pixel (x, y) using pixel_sample
-    const glm::vec2 pixel = glm::vec2(x, y) + glm::vec2(.5f);
+    //const glm::vec2 pixel = glm::vec2(x, y) + glm::vec2(.5f);
+    const glm::vec2 pixel = glm::vec2(x, y) + pixel_sample;
     const glm::vec2 ndch = (pixel - glm::vec2(w * .5f, h * .5f)) / glm::vec2(h);
     const float z = -.5f / tanf(.5f * M_PI * fov / 180.f);
     return Ray(pos, eye_to_world * glm::normalize(glm::vec3(ndch.x, ndch.y, z)));
@@ -52,6 +55,23 @@ void Camera::apply_DOF(Ray& ray, const glm::vec2& lens_sample) const {
     // thus, jitter the ray origin on the (circular) thin lens and update the ray's direction to the focal point
     // hint: use the coordinate system given via the tangent and bitangent to jitter the ray's origin
     // hint: the lens size is given in this->lens_radius and the focal distance in this->focal_depth
+    //return;
+    // add lense radius to point on lense
+    const auto sampledPointOnLense = p_on_lens * lens_radius; //glm::vec2(p_on_lens.x * lens_radius, p_on_lens.y);
+
+    // compute point on plane of focus
+    // ray.dir.length() returns 3 (the dimensions...)
+    float t = focal_depth / length(ray.dir);
+    glm::vec3 focus = ray(t);
+
+    // update ray for effect of lens
+    //const auto lensPointTangentSpace = glm::vec3(sampledPointOnLense, 0.f);//to_cartesian(sampledPointOnLense);
+    //const auto lensPointGlobalSpace = tangent_to_world(view_dir, tangent, bitangent, lensPointTangentSpace);
+    const auto lensPointTangentSpace = glm::vec3(sampledPointOnLense.x, sampledPointOnLense.y, 0.f);
+    const auto lensPointGlobalSpace = ray.org + lensPointTangentSpace.x * tangent + lensPointTangentSpace.y * tangent + lensPointTangentSpace.z * view_dir;
+    ray.org = lensPointGlobalSpace;
+    ray.dir = glm::normalize(focus - ray.org);
+
 }
 
 json11::Json Camera::to_json() const {

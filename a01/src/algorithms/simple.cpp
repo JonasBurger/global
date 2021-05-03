@@ -24,26 +24,32 @@ void SimpleRenderer::sample_pixel(Context& context, uint32_t x, uint32_t y, uint
     // TODO ASSIGNMENT1
     // - add and initialize random samplers
     // - apply supersampling over #samples and DOF using your samplers
+    auto sampler = HaltonSampler2D();
+    sampler.init(samples);
+    auto samplerDOF = UniformSampler2D();
+    sampler.init(samples);
 
-    vec3 radiance(0);
-    // setup a view ray
-    Ray ray = cam.view_ray(x, y, w, h);
-    // intersect main ray with scene
-    const SurfaceInteraction hit = scene.intersect(ray);
-    // check if a hit was found
-    if (hit.valid) {
-        if (hit.is_light()) // direct light source hit
-            radiance = hit.emission();
-        else { // surface hit -> shading
-            // TODO ASSIGNMENT1
-            // add area light shading via the rendering equation from the assignment sheet
-            // hint: use the following c++17 syntax to capture multiple return values:
-            // const auto [light_ptr, ignore_me] = scene.sample_light_source(...);
-            // auto [Li, shadow_ray, ignore_me2] = light_ptr->sample_Li(...);
-            radiance = hit.albedo();
-        }
-    } else // ray esacped the scene
-        radiance = scene.Le(ray);
-    // add radiance (exitance) to framebuffer
-    fbo.add_sample(x, y, radiance);
+    for(int i = 0; i < samples; ++i){
+        vec3 radiance(0);
+        // setup a view ray
+        Ray ray = cam.view_ray(x, y, w, h, sampler.next(), samplerDOF.next());
+        // intersect main ray with scene
+        const SurfaceInteraction hit = scene.intersect(ray);
+        // check if a hit was found
+        if (hit.valid) {
+            if (hit.is_light()) // direct light source hit
+                radiance = hit.emission();
+            else { // surface hit -> shading
+                // TODO ASSIGNMENT1
+                // add area light shading via the rendering equation from the assignment sheet
+                // hint: use the following c++17 syntax to capture multiple return values:
+                // const auto [light_ptr, ignore_me] = scene.sample_light_source(...);
+                // auto [Li, shadow_ray, ignore_me2] = light_ptr->sample_Li(...);
+                radiance = hit.albedo();
+            }
+        } else // ray esacped the scene
+            radiance = scene.Le(ray);
+        // add radiance (exitance) to framebuffer
+        fbo.add_sample(x, y, radiance);
+    }
 }
