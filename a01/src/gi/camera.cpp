@@ -61,8 +61,10 @@ void Camera::apply_DOF(Ray& ray, const glm::vec2& lens_sample) const {
 
     // compute point on plane of focus
     // ray.dir.length() returns 3 (the dimensions...)
-    float t = focal_depth / length(ray.dir);
-    glm::vec3 focus = ray(t);
+    //float t = focal_depth / length(ray.dir); // dot(norm view, norm raydir)
+    float t = focal_depth / dot(glm::normalize(view_dir), glm::normalize(ray.dir));
+    //glm::vec3 focus = ray(t);
+    glm::vec3 focus = ray.org + glm::normalize(ray.dir) * t;
 
     // update ray for effect of lens
     //const auto lensPointTangentSpace = glm::vec3(sampledPointOnLense, 0.f);//to_cartesian(sampledPointOnLense);

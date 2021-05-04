@@ -60,7 +60,7 @@ void SimpleRenderer::sample_pixel(Context& context, uint32_t x, uint32_t y, uint
                 //auto occluded = 1.f;
                 auto lightSourceDir = normalize(shadow_ray.dir);
                 auto normal = normalize(hit.N);
-                auto Lo = surfaceAlbedo*occluded*Li*dot(lightSourceDir, normal);
+                auto Lo = surfaceAlbedo*occluded*Li*std::max(dot(lightSourceDir, normal), 0.f);
                 //radiance = hit.albedo();
                 radiance = Lo;
             }
