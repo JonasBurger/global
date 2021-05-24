@@ -100,7 +100,7 @@ float SpecularFresnel::pdf(const SurfaceInteraction& hit, const vec3& w_o, const
 // Phong
 
 vec3 SpecularPhong::eval(const SurfaceInteraction& hit, const vec3& w_o, const vec3& w_i) const {
-    return vec3(0);
+    //return vec3(0);
     // TODO ASSIGNMENT2
     // evaluate the (normalized!) phong BRDF for the given in- and outgoing (world-space) directions
     const float exponent = Material::exponent_from_roughness(hit.roughness());
@@ -109,9 +109,11 @@ vec3 SpecularPhong::eval(const SurfaceInteraction& hit, const vec3& w_o, const v
     auto v = w_i;
     auto nShiny = exponent;
     auto correction = ((nShiny + 1)/(2*PI));
-    auto phong = pow(max(dot(r, v), 0.f), nShiny);
-    auto correctedPhong = correction * phong;
-    if(correctedPhong >0.1){
+    //auto phong = pow(max(dot(r, v), 0.f), nShiny);
+    auto h = normalize(v+r);
+    auto blinnPhong = pow(max(dot(hit.N, h), 0.f), nShiny);
+    auto correctedPhong = correction * blinnPhong;
+    if(correctedPhong >1){
         auto i = 1;
     }
     
@@ -121,7 +123,8 @@ vec3 SpecularPhong::eval(const SurfaceInteraction& hit, const vec3& w_o, const v
     auto phongedColor = specColor*correctedPhong;
 
     auto omega = dot(hit.N, w_i);
-    auto fresnelColor = phongedColor * fresnel_schlick(cos(omega), index_of_refraction);
+    auto schlick = fresnel_schlick(cos(omega), index_of_refraction);
+    auto fresnelColor = phongedColor * schlick;
     //return fresnelColor;
     return phongedColor;
 }
