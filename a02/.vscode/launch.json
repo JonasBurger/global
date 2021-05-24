@@ -11,7 +11,7 @@
       "program": "${workspaceFolder}/build/driver",
       "args": [
          "build/simple.algo",
-         "configs/a01.json"
+         "configs/a02_phong.json"
       ],
       "cwd": "${workspaceFolder}"
     }

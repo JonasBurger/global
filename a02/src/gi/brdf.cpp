@@ -1,4 +1,5 @@
 #include "brdf.h"
+#include "glm/fwd.hpp"
 #include "glm/geometric.hpp"
 #include "surface.h"
 #include "fresnel.h"
@@ -15,13 +16,10 @@ using namespace glm;
 vec3 LambertianReflection::eval(const SurfaceInteraction& hit, const vec3& w_o, const vec3& w_i) const {
     // TODO ASSIGNMENT2
     // evaluate the (normalized!) lambertian diffuse BRDF
-    //return vec3(0);
-    vec3 CIl = hit.Le();
-    vec3 N = hit.N;
-    vec3 L = w_o;
-    auto ID = dot(L, N)*CIl;
+    //return vec3(1);
+    vec3 CIl = hit.albedo();
     // todo: normalize?
-    return ID;
+    return CIl/PI;
 }
 
 std::tuple<vec3, vec3, float> LambertianReflection::sample(const SurfaceInteraction& hit, const vec3& w_o, const vec2& sample) const {
@@ -102,11 +100,30 @@ float SpecularFresnel::pdf(const SurfaceInteraction& hit, const vec3& w_o, const
 // Phong
 
 vec3 SpecularPhong::eval(const SurfaceInteraction& hit, const vec3& w_o, const vec3& w_i) const {
+    return vec3(0);
     // TODO ASSIGNMENT2
     // evaluate the (normalized!) phong BRDF for the given in- and outgoing (world-space) directions
     const float exponent = Material::exponent_from_roughness(hit.roughness());
     const float index_of_refraction = hit.mat->ior;
-    return vec3(0);
+    auto r = w_o;
+    auto v = w_i;
+    auto nShiny = exponent;
+    auto correction = ((nShiny + 1)/(2*PI));
+    auto phong = pow(max(dot(r, v), 0.f), nShiny);
+    auto correctedPhong = correction * phong;
+    if(correctedPhong >0.1){
+        auto i = 1;
+    }
+    
+    //auto specColor = hit.Le();
+    auto specColor = hit.albedo();
+    //auto specColor = vec3(1,1,1);
+    auto phongedColor = specColor*correctedPhong;
+
+    auto omega = dot(hit.N, w_i);
+    auto fresnelColor = phongedColor * fresnel_schlick(cos(omega), index_of_refraction);
+    //return fresnelColor;
+    return phongedColor;
 }
 
 std::tuple<vec3, vec3, float> SpecularPhong::sample(const SurfaceInteraction& hit, const vec3& w_o, const vec2& sample) const {
