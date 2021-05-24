@@ -11,3 +11,5 @@ a02/a02
 */compile_commands.json
 */release
 */output.png
+/dep
+/external
