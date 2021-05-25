@@ -1,12 +1,15 @@
 #include "brdf.h"
+#include "glm/common.hpp"
 #include "glm/fwd.hpp"
 #include "glm/geometric.hpp"
+#include "glm/trigonometric.hpp"
 #include "surface.h"
 #include "fresnel.h"
 #include "material.h"
 #include "sampling.h"
 #include "color.h"
 #include <cmath>
+#include <math.h>
 
 using namespace glm;
 
@@ -140,16 +143,33 @@ float SpecularPhong::pdf(const SurfaceInteraction &hit, const vec3 &w_o, const v
 // ----------------------------------------------------------------------------------------------
 // Microfacet distribution helper functions
 
+// dont think i need this, because the function doesnt get called if the rays are not reflectet somewhere usefull
+//inline float x_plus(float a){
+//    return a > 0 ? 1.f : 0.f;
+//}
+
 inline float GGX_D(const float NdotH, float roughness) {
     // TODO ASSIGNMENT2 (optional)
     // compute the GGX D term here
-    return 0.f;
+    //auto xi1 = RNG::uniform<float>();
+    //auto xi2 = RNG::uniform<float>();
+    auto ag = roughness;
+    //auto theta = atan((ag*sqrt(xi1))/sqrt(1-xi1));
+    //auto theta = isinf(abs(NdotH)) ? PI/2 : acos(NdotH);
+    auto theta = acos(NdotH);
+    //auto phi = 2*PI*xi2;
+    auto d = (pow(ag, 2))/(PI*pow(cos(theta), 4)*pow(pow(ag, 2)+ pow(tan(theta), 2), 2));
+    return d;
 }
 
 inline float GGX_G1(const float NdotV, float roughness) {
     // TODO ASSIGNMENT2 (optional)
     // compute the GGX G1 term here
-    return 0.f;
+    auto ag = roughness;
+    //auto theta = isinf(abs(NdotV)) ? PI/2 : acos(NdotV);
+    auto theta = acos(NdotV);
+    auto g = 2/(1+sqrt(1+pow(ag, 2)*pow(tan(theta), 2)));
+    return g;
 }
 
 vec3 GGX_sample(const vec2& sample, float roughness) {
@@ -174,7 +194,22 @@ vec3 MicrofacetReflection::eval(const SurfaceInteraction &hit, const vec3 &w_o, 
     // note: use schlick's approximation for the F term
     const float alpha = hit.roughness();
     const float microfacet = 0.f;
-    return coated ? vec3(microfacet) : hit.albedo() * microfacet;
+    auto i = w_i;
+    auto o = w_o;
+    auto n = normalize(hit.N);
+    auto hr = normalize(i+o);
+    auto omega = dot(hit.N, w_i);
+    const float index_of_refraction = hit.mat->ior;
+    auto f = fresnel_schlick(cos(omega), index_of_refraction);
+    auto m = hr;
+    auto g = GGX_G1(dot(i,m), alpha)*GGX_G1(dot(o,m), alpha);
+    auto d = GGX_D(dot(n, hr), alpha);
+    auto fs = (f*g*d)/(4.f*abs(dot(i,n))*abs(dot(o,n)));
+    return coated ? vec3(fs) : hit.albedo() * fs;
+
+
+
+    //return coated ? vec3(microfacet) : hit.albedo() * microfacet;
 }
 
 std::tuple<vec3, vec3, float> MicrofacetReflection::sample(const SurfaceInteraction& hit, const vec3& w_o, const vec2& sample) const {

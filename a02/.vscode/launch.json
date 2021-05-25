@@ -10,8 +10,8 @@
       "name": "Debug",
       "program": "${workspaceFolder}/build/driver",
       "args": [
-         "build/simple.algo",
-         "configs/a02_phong.json"
+         "build/brdf_imp.algo",
+         "configs/a02_imp.json"
       ],
       "cwd": "${workspaceFolder}"
     }

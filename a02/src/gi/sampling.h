@@ -104,24 +104,43 @@ inline glm::vec3 uniform_sample_hemisphere(const glm::vec2& sample) {
     // TODO ASSIGNMENT2
     // generate a uniform distributed tangent space direction on the unit hemisphere from a random sample in [0, 1)
     // hint: use a spherical coordinate system
-    return glm::vec3(0);
+    auto theta = acos(sample.y);
+    auto phi = 2*PI*sample.x;
+    auto ret = glm::vec3();
+    ret.x = cos(phi)*sin(theta);
+    ret.y = sin(phi)*sin(theta);
+    ret.z = cos(theta);
+    //ret.z = sin(phi)*sin(theta);
+    //ret.y = cos(theta);
+    //auto sinTheta = sqrt(1-sample.x * sample.x);
+    //ret.x = cos(phi)*sinTheta;
+    //ret.y = sample.x;
+    //ret.z = sin(phi)*sinTheta;
+    return ret; // todo: check tomorrow if they are realy in tangent space (signs)
 }
 inline float uniform_hemisphere_pdf() {
     // TODO ASSIGNMENT2
     // return the pdf of a uniform hemisphere sample in terms of solid angle
-    return 0.f;
+    return 1.f/(2*PI); // everything has the same probability
 }
 
 // hemisphere (cosine distributed tangent space direction)
 inline glm::vec3 cosine_sample_hemisphere(const glm::vec2& sample) {
     // TODO ASSIGNMENT2
     // generate a cosine distributed tangent space direction on the unit hemisphere from sample in [0, 1)
-    return glm::vec3(0);
+    const float r = sqrt(sample.x);
+    const float theta = 2 * PI * sample.y;
+    auto ret = glm::vec3();
+    ret.x = r*cos(theta);
+    ret.y = r*sin(theta);
+    ret.z = r*sqrt(1-sample.x);
+    return ret;
 }
+
 inline float cosine_hemisphere_pdf(float cos_t) {
     // TODO ASSIGNMENT2
     // return the pdf of a cosine hemisphere sample in terms of solid angle
-    return 0.f;
+    return cos_t/PI;
 }
 
 // sphere (uniform distributed tangent space direction)

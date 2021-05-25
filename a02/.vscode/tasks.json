@@ -51,6 +51,40 @@
             ]
         },
         {
+            "label": "run ggx",
+            "type": "shell",
+            "options": {
+                "cwd": "${workspaceRoot}"
+            },
+            "args": [
+                "build/simple.algo",
+                "configs/a02_ggx.json"
+             ],
+            "command": "./build/driver",
+            "group": "build",
+            "problemMatcher": [],
+            "dependsOn": [
+                "make"
+            ]
+        },
+        {
+            "label": "run imp",
+            "type": "shell",
+            "options": {
+                "cwd": "${workspaceRoot}"
+            },
+            "args": [
+                "build/brdf_imp.algo",
+                "configs/a02_imp.json"
+             ],
+            "command": "./build/driver",
+            "group": "build",
+            "problemMatcher": [],
+            "dependsOn": [
+                "make"
+            ]
+        },
+        {
             "label": "build and run release",
             "type": "shell",
             "options": {
