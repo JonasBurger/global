@@ -1,5 +1,6 @@
 #include "distribution.h"
 #include "buffer.h"
+#include "glm/fwd.hpp"
 #include "texture.h"
 #include "random.h"
 #include "color.h"
@@ -7,6 +8,8 @@
 #include <cstddef>
 #include <iostream>
 #include <cmath>
+#include <memory>
+#include <vector>
 
 // ----------------------------------------------------
 // Distribution1D
@@ -16,11 +19,16 @@ Distribution1D::Distribution1D(const float* f, uint32_t N) : func(f, f + N), cdf
     // hint: take extra care regarding corner-cases!
     f_integral = N;
 
-    auto sumOfAllF = accumulate(func.begin(), func.end(), 0.f);
-    float cumulator = 0.f;
+    auto sumOfAllF = std::accumulate(func.begin(), func.end(), 0.f);
+    if(sumOfAllF == 0.f){
+        //sumOfAllF = 1.f;
+    }
+    //assert(sumOfAllF > 0.f);
+    float accumulator = 0.f;
     for (size_t i=0; i<N; ++i){
-        cumulator += f[i];
-        cdf[i+1] = cumulator/sumOfAllF;
+        accumulator += f[i];
+        cdf[i+1] = accumulator/sumOfAllF;
+        //assert(!std::isnan(cdf[i+1]));
     }
 }
 
@@ -50,6 +58,7 @@ std::tuple<float, float> Distribution1D::sample_01(float sample) const {
     // TODO ASSIGNMENT3 draw a sample in [0, 1) according to this distribution and the respective PDF
     // hint: a piecewise constant function is assumed, so you may linearly interpolate between function values
     assert(sample >0.f && sample <= 1.f);
+    assert(!std::isnan(cdf[1]));
     auto xIter = std::find_if(cdf.begin(), cdf.end(), [&](auto& o){ return sample <= o;});
     assert(xIter!=cdf.end());
     auto previousIter = xIter != cdf.begin() ? xIter-1 : xIter;
@@ -86,10 +95,22 @@ std::tuple<uint32_t, float> Distribution1D::sample_index(float sample) const {
 // ----------------------------------------------------
 // Distribution2D
 
-Distribution2D::Distribution2D(const float* f, uint32_t w, uint32_t h) {
+Distribution2D::Distribution2D(const float* f, uint32_t w, uint32_t h)
+{
     // TODO ASSIGNMENT3 build conditional and marginal distributions from linearized array of function values
     // hint: use f[y * w + x] to get the value at (x, y)
     // hint: you may re-use the Distribution1D
+    std::vector<float> accumulatedRows(h);
+    rowDistributions.reserve(h);
+    for(size_t i = 0; i < h; ++i){
+        auto begin = f + i * w;
+        auto end = begin + w;
+        assert(std::find_if(begin, end, [](auto& o){return std::isnan(o);}) == end);
+        rowDistributions.emplace_back(begin, w);
+        auto rowSum = std::accumulate(begin, end, 0.f);
+        accumulatedRows[i] = rowSum;
+    }
+    marginalDistribution = std::make_unique<Distribution1D>(accumulatedRows.data(), h);
 }
 
 Distribution2D::~Distribution2D() {
@@ -98,17 +119,22 @@ Distribution2D::~Distribution2D() {
 
 double Distribution2D::integral() const {
     // TODO ASSIGNMENT3 return the integral
-    return 1.f;
+    return marginalDistribution->integral() * rowDistributions.front().integral();
 }
 
 double Distribution2D::unit_integral() const {
     // TODO ASSIGNMENT3 return the unit integral
-    return 1.f;
+    return integral() / (marginalDistribution->size() * rowDistributions.front().size());
 }
 
 std::tuple<glm::vec2, float> Distribution2D::sample_01(const glm::vec2& sample) const {
     // TODO ASSIGNMENT3 draw a two-dimensional sample in [0, 1) from this distribution and compute it's PDF
-    return { sample, 1.f };
+    auto [y_i, _] = marginalDistribution->sample_index(sample.y);
+    auto [y, p_y] = marginalDistribution->sample_01(sample.y);
+    //auto yIndex = size_t(y * marginalDistribution->size() - 1);
+    auto [x, p_x] = rowDistributions.at(y_i).sample_01(sample.x);
+
+    return { glm::vec2(x, y), p_x * p_y };
 }
 
 float Distribution2D::pdf(const glm::vec2& sample) const {

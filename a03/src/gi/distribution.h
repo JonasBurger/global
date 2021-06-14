@@ -129,6 +129,8 @@ private:
     // data
     // TODO ASSIGNMENT3
     // add data structures for conditional and marginal distributions
+    std::vector<Distribution1D> rowDistributions;
+    std::unique_ptr<Distribution1D> marginalDistribution;
 };
 
 // ----------------------------------------------------
