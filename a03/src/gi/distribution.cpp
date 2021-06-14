@@ -3,7 +3,10 @@
 #include "texture.h"
 #include "random.h"
 #include "color.h"
+#include <algorithm>
+#include <cstddef>
 #include <iostream>
+#include <cmath>
 
 // ----------------------------------------------------
 // Distribution1D
@@ -12,6 +15,13 @@ Distribution1D::Distribution1D(const float* f, uint32_t N) : func(f, f + N), cdf
     // TODO ASSIGNMENT3 build a CDF from given discrete function values and ensure a density
     // hint: take extra care regarding corner-cases!
     f_integral = N;
+
+    auto sumOfAllF = accumulate(func.begin(), func.end(), 0.f);
+    float cumulator = 0.f;
+    for (size_t i=0; i<N; ++i){
+        cumulator += f[i];
+        cdf[i+1] = cumulator/sumOfAllF;
+    }
 }
 
 double Distribution1D::integral() const {
@@ -32,16 +42,45 @@ float Distribution1D::pdf(size_t index) const {
     return func[index] / integral();
 }
 
+float lerp(float a, float b, float t){
+    return a+t*(b-a);
+}
+
 std::tuple<float, float> Distribution1D::sample_01(float sample) const {
     // TODO ASSIGNMENT3 draw a sample in [0, 1) according to this distribution and the respective PDF
     // hint: a piecewise constant function is assumed, so you may linearly interpolate between function values
-    return { sample, 1.f / size() };
+    assert(sample >0.f && sample <= 1.f);
+    auto xIter = std::find_if(cdf.begin(), cdf.end(), [&](auto& o){ return sample <= o;});
+    assert(xIter!=cdf.end());
+    auto previousIter = xIter != cdf.begin() ? xIter-1 : xIter;
+    auto t = (sample - *previousIter) / (*xIter - *previousIter);
+    assert(t >= 0.f && t <= 1.f);
+    //auto x = lerp(*previousIter, *xIter, t);
+    auto i = xIter - cdf.begin();
+    auto y = (i - 1.f + t) / size();
+    //auto y = func[i];
+    //auto previousY = func[i>0 ? (i-1) : i];
+    //auto lerpedY = lerp(previousY, y, t);
+    auto p = (cdf[i] - cdf[std::max(i-1, 0l)]) * size();
+
+    //return { x, lerpedY };
+    return { y, p };
 }
 
 std::tuple<uint32_t, float> Distribution1D::sample_index(float sample) const {
     // TODO ASSIGNMENT3 sample an index in [0, n) according to this distribution and the respective PDF
     // note: take care about proper normalization of the PDF!
-    return { sample * size(), 1.f / size() };
+    assert(sample >0.f && sample <= 1.f);
+    auto xIter = std::find_if(cdf.begin(), cdf.end(), [&](auto& o){ return sample <= o;});
+    assert(xIter!=cdf.end());
+    auto previousIter = xIter != cdf.begin() ? xIter-1 : xIter;
+    auto t = (sample - *previousIter) / (*xIter - *previousIter);
+    assert(t >= 0.f && t <= 1.f);
+    //auto x = lerp(*previousIter, *xIter, t);
+    auto i = xIter - cdf.begin();
+    auto y = std::max(i-1, 0l);
+    auto p = (cdf[i] - cdf[std::max(i-1, 0l)]) * size();
+    return { y, p };
 }
 
 // ----------------------------------------------------
