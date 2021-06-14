@@ -58,7 +58,13 @@ void BRDFImportance::sample_pixel(Context& context, uint32_t x, uint32_t y, uint
                     // - sample the brdf (BRDF::sample) for a outgoing direction instead of uniform sampling of the hemisphere
                     // - intersect the ray with the scene and check if you hit a light source
                     // - if a light source was hit, compute the radiance via the given equation
-                    radiance = hit.albedo();
+                    const auto [brdf, w_i_world_space, pdf] = hit.sample(normalize(-ray.dir), RNG::uniform<vec2>());
+                    auto sample_ray = Ray(hit.P, w_i_world_space); // wi
+                    const auto sample_hit = scene.intersect(sample_ray);
+                    if (pdf > 0.f && sample_hit.light){
+                        const auto Le = sample_hit.Le();
+                        radiance = hit.brdf(normalize(-ray.dir), normalize(sample_ray.dir)) * Le * fmaxf(0.f, dot(hit.N, sample_ray.dir)) / pdf;
+                    }
                 }
             }
         } else // ray esacped the scene
