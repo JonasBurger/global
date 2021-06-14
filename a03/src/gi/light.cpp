@@ -73,8 +73,10 @@ void SkyLight::commit() {
     Buffer<float> lum(tex->w, tex->h);
     for (size_t y = 0; y < tex->h; ++y) {
         // TODO ASSIGNMENT3 counteract distortion from spherical mapping
+        float relPos = float(y)/tex->h;
+        float distortion = sin(relPos*PI);
         for (size_t x = 0; x < tex->w; ++x)
-            lum(x, y) = luma(tex->operator()(x, y));
+            lum(x, y) = luma(tex->operator()(x, y)) * distortion;
     }
     distribution = std::make_shared<Distribution2D>(lum.data(), lum.width(), lum.height());
     plot_heatmap(*distribution, lum.width(), lum.height());
@@ -94,7 +96,8 @@ std::tuple<glm::vec3, Ray, float> SkyLight::sample_Li(const SurfaceInteraction& 
     if (sin_theta <= 0.f) return { glm::vec3(0), Ray(), 0.f };
     const glm::vec3 dir = glm::vec3(sin_theta * cosf(phi), cos_theta, sin_theta * sinf(phi));
     // TODO ASSIGNMENT3 cancel distortion elimination
-    const float pdf = sample_pdf / (2.f * PI * PI);
+    float distortion = sin(theta);
+    const float pdf = sample_pdf / (2.f * PI * PI) / distortion;
     assert(std::isfinite(pdf));
     return { tex->env(dir) * intensity, hit.spawn_ray(dir), pdf };
 }
