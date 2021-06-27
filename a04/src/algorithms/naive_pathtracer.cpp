@@ -28,13 +28,13 @@ glm::vec3 tracePath(Ray& ray, Context& context, int N){
         if (hit.is_light()) {// direct light source hit
             return hit.Le();
         }else { // surface hit
-            const auto [brdf, w_i, pdf] = hit.sample(normalize(ray.dir), RNG::uniform<vec2>());
+            const auto [brdf, w_i, pdf] = hit.sample(-normalize(ray.dir), RNG::uniform<vec2>());
             if (pdf == 0.f){
                 return glm::vec3(0); // there can be no light from here (wrong hemisshere check failed)
             }
             auto newRay = hit.spawn_ray(w_i);
             auto Li = tracePath(newRay, context, N-1);
-            auto radiance = brdf * Li  / pdf; // fmaxf(0.f, dot(normalize(hit.N), normalize(newRay.dir)))
+            auto radiance = brdf * Li * fmaxf(0.f, dot(normalize(hit.N), normalize(newRay.dir))) / pdf; // 
             assert(!std::isnan(radiance.x));
             return radiance;
             //radiance += fAcc * hit.albedo();
