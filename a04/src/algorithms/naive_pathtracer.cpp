@@ -62,7 +62,7 @@ void NaivePathtracer::sample_pixel(Context& context, uint32_t x, uint32_t y, uin
         // - add russian roulette
 
         // setup a view ray
-        Ray ray = cam.view_ray(x, y, w, h, RNG::uniform<vec2>(), RNG::uniform<vec2>());
+        Ray ray = cam.view_ray(x, y, w, h, RNG::uniform<vec2>());
 
         auto radiance = tracePath(ray, context, MAX_PATH_LENGHT);
 
