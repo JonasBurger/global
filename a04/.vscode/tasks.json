@@ -51,14 +51,14 @@
             ]
         },
         {
-            "label": "run sunset",
+            "label": "run pots",
             "type": "shell",
             "options": {
                 "cwd": "${workspaceRoot}"
             },
             "args": [
-                "build/simple.algo",
-                "configs/a03_sunset.json"
+                "build/naive_pathtracer.algo",
+                "configs/a04_pots.json"
              ],
             "command": "./build/driver",
             "group": "build",
@@ -97,8 +97,8 @@
                 "make",
                 "&&",
                 "./driver",
-                "simple.algo",
-                "../configs/a03.json"
+                "naive_pathtracer.algo",
+                "../configs/a04_pots.json"
              ],
             "command": "cmake",
             "group": "build",
