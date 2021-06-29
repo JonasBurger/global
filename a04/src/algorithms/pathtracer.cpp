@@ -20,8 +20,7 @@ extern "C" Algorithm* create_algorithm() { return new Pathtracer; }
 
 
 // radiance ret
-glm::vec3 tracePath(Ray& ray, Context& context, int N){
-    if(N==0){return glm::vec3(0);}
+glm::vec3 tracePath(Ray& ray, Context& context, int N, float throughput_acc){
     // intersect main ray with scene
     const SurfaceInteraction hit = context.scene.intersect(ray);
     const Scene& scene = context.scene;
@@ -32,13 +31,20 @@ glm::vec3 tracePath(Ray& ray, Context& context, int N){
             return hit.Le();
         }else { // surface hit
             // indirect Light
-            const auto [brdf, w_i, pdf] = hit.sample(-normalize(ray.dir), RNG::uniform<vec2>());
+            auto [brdf, w_i, pdf] = hit.sample(-normalize(ray.dir), RNG::uniform<vec2>());
             vec3 indirect_radiance = vec3(0);
             if (pdf != 0.f){ // there can be no light from here (wrong hemisshere check failed)
                 auto newRay = hit.spawn_ray(w_i);
-                auto Li = tracePath(newRay, context, N-1);
-                indirect_radiance = brdf * Li * fmaxf(0.f, dot(normalize(hit.N), normalize(newRay.dir))) / pdf;
-                assert(!std::isnan(indirect_radiance.x));
+                auto throughput = throughput_acc * (brdf.x + brdf.y + brdf.z) / 3.f * fmaxf(0.f, dot(normalize(hit.N), normalize(newRay.dir))) / pdf;
+                auto terminationP = throughput / (1-context.RR_THRESHOLD);
+                if(N < context.RR_MIN_PATH_LENGTH || terminationP > context.RR_THRESHOLD){
+                    auto Li = tracePath(newRay, context, N+1, throughput);
+                    indirect_radiance = brdf * Li * fmaxf(0.f, dot(normalize(hit.N), normalize(newRay.dir))) / pdf;
+                    assert(!std::isnan(indirect_radiance.x));
+                }else{
+                    pdf = 0.f;
+                }
+
             }
 
             // direct Light
@@ -57,10 +63,10 @@ glm::vec3 tracePath(Ray& ray, Context& context, int N){
                 return balance_heuristic(pdf_l, pdf_r) * l + balance_heuristic(pdf_r, pdf_l) * r; 
             };
 
-            auto radiance = poor_mans_mip(pdf, indirect_radiance, light_pdf, direct_radiance);
+            //auto radiance = poor_mans_mip(pdf, indirect_radiance, light_pdf, direct_radiance);
 
             // a bit unsure about this, because the pseudo code is kinda different
-            //auto radiance = indirect_radiance + direct_radiance; 
+            auto radiance = indirect_radiance + direct_radiance; 
 
 
             return radiance;
@@ -88,7 +94,7 @@ void Pathtracer::sample_pixel(Context& context, uint32_t x, uint32_t y, uint32_t
         // - (optional, bonus) add multiple importance sampling
         Ray ray = cam.view_ray(x, y, w, h, RNG::uniform<vec2>());
 
-        auto radiance = tracePath(ray, context, MAX_PATH_LENGTH);
+        auto radiance = tracePath(ray, context, MAX_PATH_LENGTH, 1.f);
 
         // add radiance (exitance) to framebuffer
         fbo.add_sample(x, y, radiance);
