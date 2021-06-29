@@ -19,7 +19,7 @@ struct NaivePathtracer : public Algorithm {
 extern "C" Algorithm* create_algorithm() { return new NaivePathtracer; }
 
 // radiance ret
-glm::vec3 tracePath(Ray& ray, Context& context, int N, float throughput_acc){
+glm::vec3 tracePath(Ray& ray, Context& context, int N, float facc){
     // intersect main ray with scene
     const SurfaceInteraction hit = context.scene.intersect(ray);
     // check if a hit was found
@@ -32,10 +32,10 @@ glm::vec3 tracePath(Ray& ray, Context& context, int N, float throughput_acc){
                 return glm::vec3(0); // there can be no light from here (wrong hemisshere check failed)
             }
             auto newRay = hit.spawn_ray(w_i);
-            auto throughput = throughput_acc * (brdf.x + brdf.y + brdf.z) / 3.f * fmaxf(0.f, dot(normalize(hit.N), normalize(newRay.dir))) / pdf;
-            auto terminationP = throughput / (1-context.RR_THRESHOLD);
-            if(N < context.RR_MIN_PATH_LENGTH || terminationP > context.RR_THRESHOLD){
-                auto Li = tracePath(newRay, context, N+1, throughput);
+            auto f = facc * (brdf.x + brdf.y + brdf.z) / 3.f * fmaxf(0.f, dot(normalize(hit.N), normalize(newRay.dir))) / pdf;
+            auto q = fmin(.95, f * context.RR_THRESHOLD); // / (1-context.RR_THRESHOLD);
+            if(N < context.RR_MIN_PATH_LENGTH || RNG::uniform<float>() < q){
+                auto Li = tracePath(newRay, context, N+1, f);
                 auto radiance = brdf * Li * fmaxf(0.f, dot(normalize(hit.N), normalize(newRay.dir))) / pdf; // 
                 assert(!std::isnan(radiance.x));
                 return radiance;

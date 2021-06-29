@@ -20,7 +20,7 @@ extern "C" Algorithm* create_algorithm() { return new Pathtracer; }
 
 
 // radiance ret
-glm::vec3 tracePath(Ray& ray, Context& context, int N, float throughput_acc){
+glm::vec3 tracePath(Ray& ray, Context& context, int N, float facc){
     // intersect main ray with scene
     const SurfaceInteraction hit = context.scene.intersect(ray);
     const Scene& scene = context.scene;
@@ -35,10 +35,10 @@ glm::vec3 tracePath(Ray& ray, Context& context, int N, float throughput_acc){
             vec3 indirect_radiance = vec3(0);
             if (pdf != 0.f){ // there can be no light from here (wrong hemisshere check failed)
                 auto newRay = hit.spawn_ray(w_i);
-                auto throughput = throughput_acc * (brdf.x + brdf.y + brdf.z) / 3.f * fmaxf(0.f, dot(normalize(hit.N), normalize(newRay.dir))) / pdf;
-                auto terminationP = throughput / (1-context.RR_THRESHOLD);
-                if(N < context.RR_MIN_PATH_LENGTH || terminationP > context.RR_THRESHOLD){
-                    auto Li = tracePath(newRay, context, N+1, throughput);
+                auto f = facc * (brdf.x + brdf.y + brdf.z) / 3.f * fmaxf(0.f, dot(normalize(hit.N), normalize(newRay.dir))) / pdf;
+                auto q = fmin(.95, f * context.RR_THRESHOLD); // / (1-context.RR_THRESHOLD);
+                if(N < context.RR_MIN_PATH_LENGTH || RNG::uniform<float>() < q){
+                    auto Li = tracePath(newRay, context, N+1, f);
                     indirect_radiance = brdf * Li * fmaxf(0.f, dot(normalize(hit.N), normalize(newRay.dir))) / pdf;
                     assert(!std::isnan(indirect_radiance.x));
                 }else{
@@ -94,7 +94,7 @@ void Pathtracer::sample_pixel(Context& context, uint32_t x, uint32_t y, uint32_t
         // - (optional, bonus) add multiple importance sampling
         Ray ray = cam.view_ray(x, y, w, h, RNG::uniform<vec2>());
 
-        auto radiance = tracePath(ray, context, MAX_PATH_LENGTH, 1.f);
+        auto radiance = tracePath(ray, context, 0, 1.f);
 
         // add radiance (exitance) to framebuffer
         fbo.add_sample(x, y, radiance);

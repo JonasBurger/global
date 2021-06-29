@@ -17,8 +17,8 @@
         }
       ],
       "args": [
-         "build/naive_pathtracer.algo",
-         "configs/a04_pots.json"
+         "build/pathtracer.algo",
+         "configs/a04_box.json"
       ],
       "cwd": "${workspaceFolder}"
     }

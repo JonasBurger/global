@@ -98,7 +98,7 @@
                 "&&",
                 "./driver",
                 "pathtracer.algo",
-                "../configs/a04_mis.json"
+                "../configs/a04_box.json"
              ],
             "command": "cmake",
             "group": "build",
