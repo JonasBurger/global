@@ -25,7 +25,7 @@ glm::vec3 tracePath(Ray& ray, Context& context, int N){
     const SurfaceInteraction hit = context.scene.intersect(ray);
     // check if a hit was found
     if (hit.valid) {
-        if (hit.is_light()) {// direct light source hit
+        if (hit.is_light() && dot(normalize(hit.N), normalize(-ray.dir)) > 0.f) {// direct light source hit
             return hit.Le();
         }else { // surface hit
             const auto [brdf, w_i, pdf] = hit.sample(-normalize(ray.dir), RNG::uniform<vec2>());
