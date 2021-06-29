@@ -17,20 +17,54 @@ struct Pathtracer : public Algorithm {
 };
 extern "C" Algorithm* create_algorithm() { return new Pathtracer; }
 
+
+// radiance ret
+glm::vec3 tracePath(Ray& ray, Context& context, int N){
+    if(N==0){return glm::vec3(0);}
+    // intersect main ray with scene
+    const SurfaceInteraction hit = context.scene.intersect(ray);
+    // check if a hit was found
+    if (hit.valid) {
+        if (hit.is_light() && dot(normalize(hit.N), normalize(-ray.dir)) > 0.f) {// direct light source hit
+            return hit.Le();
+        }else { // surface hit
+            const auto [brdf, w_i, pdf] = hit.sample(-normalize(ray.dir), RNG::uniform<vec2>());
+            if (pdf == 0.f){
+                return glm::vec3(0); // there can be no light from here (wrong hemisshere check failed)
+            }
+            auto newRay = hit.spawn_ray(w_i);
+            auto Li = tracePath(newRay, context, N-1);
+            auto radiance = brdf * Li * fmaxf(0.f, dot(normalize(hit.N), normalize(newRay.dir))) / pdf;
+            assert(!std::isnan(radiance.x));
+            return radiance;
+            //radiance += fAcc * hit.albedo();
+        }
+    } else {// ray esacped the scene
+        return context.scene.Le(ray);
+    }
+    return glm::vec3(0);
+}
+
 void Pathtracer::sample_pixel(Context& context, uint32_t x, uint32_t y, uint32_t samples) {
     // shortcuts
     const Camera& cam = context.cam;
     const Scene& scene = context.scene;
     Framebuffer& fbo = context.fbo;
     const size_t w = fbo.width(), h = fbo.height();
+    const auto MAX_PATH_LENGTH = context.MAX_CAM_PATH_LENGTH;
+
 
     // trace
     for (uint32_t i = 0; i < samples; ++i) {
-        vec3 radiance(0);
         // TODO ASSIGNMENT4
         // - implement a pathtracer using next event estimation
         // - add russian roulette
         // - (optional, bonus) add multiple importance sampling
-        context.fbo.add_sample(x, y, radiance);
+        Ray ray = cam.view_ray(x, y, w, h, RNG::uniform<vec2>());
+
+        auto radiance = tracePath(ray, context, MAX_PATH_LENGTH);
+
+        // add radiance (exitance) to framebuffer
+        fbo.add_sample(x, y, radiance);
     }
 }

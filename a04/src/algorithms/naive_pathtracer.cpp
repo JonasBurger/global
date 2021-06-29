@@ -52,7 +52,7 @@ void NaivePathtracer::sample_pixel(Context& context, uint32_t x, uint32_t y, uin
     const Scene& scene = context.scene;
     Framebuffer& fbo = context.fbo;
     const size_t w = fbo.width(), h = fbo.height();
-    const auto MAX_PATH_LENGHT = context.MAX_CAM_PATH_LENGTH;
+    const auto MAX_PATH_LENGTH = context.MAX_CAM_PATH_LENGTH;
 
     // trace
     for (uint32_t i = 0; i < samples; ++i) {
@@ -64,7 +64,7 @@ void NaivePathtracer::sample_pixel(Context& context, uint32_t x, uint32_t y, uin
         // setup a view ray
         Ray ray = cam.view_ray(x, y, w, h, RNG::uniform<vec2>());
 
-        auto radiance = tracePath(ray, context, MAX_PATH_LENGHT);
+        auto radiance = tracePath(ray, context, MAX_PATH_LENGTH);
 
         // add radiance (exitance) to framebuffer
         fbo.add_sample(x, y, radiance);
