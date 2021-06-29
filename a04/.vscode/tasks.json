@@ -97,8 +97,8 @@
                 "make",
                 "&&",
                 "./driver",
-                "naive_pathtracer.algo",
-                "../configs/a04_pots.json"
+                "pathtracer.algo",
+                "../configs/a04_mis.json"
              ],
             "command": "cmake",
             "group": "build",

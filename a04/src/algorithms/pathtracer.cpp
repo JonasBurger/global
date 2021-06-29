@@ -7,6 +7,7 @@
 #include "gi/light.h"
 #include "gi/timer.h"
 #include "gi/color.h"
+#include "glm/fwd.hpp"
 #include <atomic>
 
 using namespace std;
@@ -23,21 +24,35 @@ glm::vec3 tracePath(Ray& ray, Context& context, int N){
     if(N==0){return glm::vec3(0);}
     // intersect main ray with scene
     const SurfaceInteraction hit = context.scene.intersect(ray);
+    const Scene& scene = context.scene;
+
     // check if a hit was found
     if (hit.valid) {
         if (hit.is_light() && dot(normalize(hit.N), normalize(-ray.dir)) > 0.f) {// direct light source hit
             return hit.Le();
         }else { // surface hit
+            // indirect Light
             const auto [brdf, w_i, pdf] = hit.sample(-normalize(ray.dir), RNG::uniform<vec2>());
-            if (pdf == 0.f){
-                return glm::vec3(0); // there can be no light from here (wrong hemisshere check failed)
+            vec3 indirect_radiance = vec3(0);
+            if (pdf != 0.f){ // there can be no light from here (wrong hemisshere check failed)
+                auto newRay = hit.spawn_ray(w_i);
+                auto Li = tracePath(newRay, context, N-1);
+                indirect_radiance = brdf * Li * fmaxf(0.f, dot(normalize(hit.N), normalize(newRay.dir))) / pdf;
+                assert(!std::isnan(indirect_radiance.x));
             }
-            auto newRay = hit.spawn_ray(w_i);
-            auto Li = tracePath(newRay, context, N-1);
-            auto radiance = brdf * Li * fmaxf(0.f, dot(normalize(hit.N), normalize(newRay.dir))) / pdf;
-            assert(!std::isnan(radiance.x));
+
+            // direct Light
+            vec3 direct_radiance = vec3(0);
+            const auto [light, pdf_light_source] = scene.sample_light_source(RNG::uniform<float>());
+            auto [light_Li, shadow_ray, pdf_light_sample] = light->sample_Li(hit, RNG::uniform<vec2>());
+            const float light_pdf = pdf_light_source * pdf_light_sample;
+            if (light_pdf > 0.f && !scene.occluded(shadow_ray)){
+                direct_radiance = hit.brdf(-ray.dir, shadow_ray.dir) * light_Li * fmaxf(0.f, dot(hit.N, shadow_ray.dir)) / light_pdf;
+            }
+
+            auto radiance = indirect_radiance + direct_radiance; // a bit unsure about this, because the pseudo code is kinda different
+
             return radiance;
-            //radiance += fAcc * hit.albedo();
         }
     } else {// ray esacped the scene
         return context.scene.Le(ray);
