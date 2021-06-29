@@ -50,7 +50,18 @@ glm::vec3 tracePath(Ray& ray, Context& context, int N){
                 direct_radiance = hit.brdf(-ray.dir, shadow_ray.dir) * light_Li * fmaxf(0.f, dot(hit.N, shadow_ray.dir)) / light_pdf;
             }
 
-            auto radiance = indirect_radiance + direct_radiance; // a bit unsure about this, because the pseudo code is kinda different
+            auto poor_mans_mip = [](auto pdf_l, auto l, auto pdf_r, auto r){
+                if(std::isnan(pdf_l)) return r;
+                if(std::isnan(pdf_r)) return l;
+                if(pdf_r == 0.f && pdf_l == 0.f) return glm::vec3(0);
+                return balance_heuristic(pdf_l, pdf_r) * l + balance_heuristic(pdf_r, pdf_l) * r; 
+            };
+
+            auto radiance = poor_mans_mip(pdf, indirect_radiance, light_pdf, direct_radiance);
+
+            // a bit unsure about this, because the pseudo code is kinda different
+            //auto radiance = indirect_radiance + direct_radiance; 
+
 
             return radiance;
         }
